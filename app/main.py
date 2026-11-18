@@ -257,8 +257,10 @@ def checkout(dados: CheckoutIn, operador: OperadorAtual, db: DB) -> VendaOut:
     db.add(venda)
     db.commit()
 
+    # .all() materializa as linhas (id, estoque). Passar o Result direto para dict() falha:
+    # como ele tem .keys(), dict() o trata como mapeamento e tenta indexá-lo.
     saldos = dict(
-        db.execute(select(Produto.id, Produto.estoque).where(Produto.id.in_(ids))).tuples()
+        db.execute(select(Produto.id, Produto.estoque).where(Produto.id.in_(ids))).tuples().all()
     )
     return VendaOut(
         id=venda.id,
