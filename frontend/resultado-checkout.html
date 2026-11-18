@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resultado da Venda — Casa Moura | Gestão de Balcão</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen font-sans antialiased text-slate-900">
+
+  <!-- Barra superior -->
+  <header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
+    <div class="flex items-center gap-3 min-w-0">
+      <div class="bg-amber-600 text-white font-bold rounded-lg w-9 h-9 flex items-center justify-center shrink-0" aria-hidden="true">CM</div>
+      <p class="font-bold text-slate-900 truncate">Casa Moura — Gestão de Balcão</p>
+    </div>
+    <div class="flex items-center gap-4">
+      <p class="text-sm text-slate-600 hidden sm:block">Operador: <span id="nome-operador">Balcão 01</span></p>
+      <!-- Alternador exibido apenas no modo demonstração (sem venda real na sessão). -->
+      <div id="simulador" role="group" aria-label="Simulação de resultado (demonstração)"
+           class="hidden rounded-lg border border-slate-300 bg-slate-50 p-0.5">
+        <button type="button" data-estado="aprovada" aria-pressed="true"
+                class="min-h-[44px] px-3 text-xs font-semibold rounded-md text-slate-700 aria-pressed:bg-white aria-pressed:text-slate-900 aria-pressed:shadow-sm hover:text-slate-900 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-600">
+          Simular Aprovação
+        </button>
+        <button type="button" data-estado="recusada" aria-pressed="false"
+                class="min-h-[44px] px-3 text-xs font-semibold rounded-md text-slate-700 aria-pressed:bg-white aria-pressed:text-slate-900 aria-pressed:shadow-sm hover:text-slate-900 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-600">
+          Simular Recusa
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="px-4">
+    <article class="max-w-2xl mx-auto my-8 bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
+
+      <!-- Os banners ficam no DOM desde o início para que as regiões vivas sejam anunciadas. -->
+      <div id="banner-aprovada" role="status"
+           class="hidden bg-emerald-50 border-2 border-emerald-600 rounded-xl p-5 items-center gap-4 mb-6"></div>
+      <div id="banner-recusada" role="alert"
+           class="hidden bg-red-50 border-2 border-red-600 rounded-xl p-5 items-center gap-4 mb-6"></div>
+
+      <section aria-labelledby="titulo-resumo">
+        <h2 id="titulo-resumo" class="text-lg font-bold text-slate-900 mb-3">Resumo da Transação</h2>
+
+        <dl class="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+          <dt class="font-semibold text-slate-700">Cliente vinculado</dt>
+          <dd id="resumo-cliente" class="text-slate-900"></dd>
+          <dt class="font-semibold text-slate-700">Data/Hora</dt>
+          <dd id="resumo-data" class="text-slate-900"></dd>
+          <dt class="font-semibold text-slate-700">Pagamento</dt>
+          <dd id="resumo-pagamento" class="text-slate-900"></dd>
+          <dt class="font-semibold text-slate-700">Situação</dt>
+          <dd id="resumo-situacao" class="font-semibold"></dd>
+        </dl>
+
+        <h3 class="text-sm font-bold text-slate-900 mt-5 mb-2">Itens</h3>
+        <ul id="resumo-itens" class="divide-y divide-slate-200 border-y border-slate-200" role="list"></ul>
+
+        <div class="mt-4 flex items-baseline justify-between">
+          <span id="rotulo-total" class="text-base font-semibold text-slate-700">Total Pago</span>
+          <span id="resumo-total" class="text-2xl font-extrabold text-slate-900"></span>
+        </div>
+      </section>
+
+      <nav aria-label="Próximos passos" class="mt-8 flex flex-col sm:flex-row gap-3">
+        <a id="acao-primaria" href="catalogo-checkout.html?novo=1"
+           class="w-full sm:w-auto min-h-[48px] px-6 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg inline-flex items-center justify-center transition focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-600 focus-visible:ring-offset-2">
+          Novo Atendimento
+        </a>
+        <a id="acao-secundaria" href="catalogo-checkout.html"
+           class="w-full sm:w-auto min-h-[48px] px-6 border-2 border-slate-300 text-slate-800 font-semibold rounded-lg hover:bg-slate-100 inline-flex items-center justify-center transition focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-600 focus-visible:ring-offset-2">
+          Voltar ao Carrinho
+        </a>
+      </nav>
+
+      <p id="aviso-demo" class="hidden text-xs text-slate-600 mt-6">Modo demonstração: dados fictícios exibidos porque não há uma venda registrada nesta sessão.</p>
+    </article>
+  </main>
+
+  <script>
+    (function () {
+      const $ = (id) => document.getElementById(id);
+      const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+      const fmt = (centavos) => brl.format(centavos / 100).replace(/ /g, ' ');
+      const FUSO = 'America/Sao_Paulo';
+      function fmtData(iso) {
+        const d = new Date(iso);
+        const data = d.toLocaleDateString('pt-BR', { timeZone: FUSO });
+        const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: FUSO });
+        return `${data} às ${hora}`;
+      }
+      const FORMAS = { pix: 'Pix', dinheiro: 'Dinheiro', cartao_debito: 'Cartão de débito', cartao_credito: 'Cartão de crédito' };
+
+      const ICONE_OK = `<svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" focusable="false"><polyline points="20 6 9 17 4 12"/></svg>`;
+      const ICONE_ALERTA = `<svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+
+      // Dados fictícios para o modo demonstração.
+      const DEMO = {
+        aprovada: {
+          status: 'aprovada',
+          venda: {
+            numero: '#00148', criado_em: '2026-11-17T14:32:00-03:00', operador: 'Balcão 01',
+            cliente: { nome: 'João Silva Santos', telefone: '(11) 99999-0101' },
+            forma_pagamento: 'pix', total_centavos: 9830, valor_recebido_centavos: null, troco_centavos: null,
+            itens: [
+              { nome: 'Cimento CP-II 50kg', quantidade: 2, subtotal_centavos: 6980, novo_saldo: 40 },
+              { nome: 'Argamassa AC-III 20kg', quantidade: 1, subtotal_centavos: 2850, novo_saldo: 17 }
+            ]
+          }
+        },
+        recusada: {
+          status: 'recusada', codigo: 'saldo_insuficiente',
+          mensagem: 'A transação não foi concluída. O estoque permanece inalterado. Solicite outro meio de pagamento ou ajuste os itens.',
+          criado_em: '2026-11-17T14:32:00-03:00', operador: 'Balcão 01',
+          cliente: { nome: 'João Silva Santos', telefone: '(11) 99999-0101' },
+          forma_pagamento: 'dinheiro', total_centavos: 9830,
+          itens: [
+            { nome: 'Cimento CP-II 50kg', quantidade: 2, subtotal_centavos: 6980, saldo: 42, falta: false },
+            { nome: 'Argamassa AC-III 20kg', quantidade: 1, subtotal_centavos: 2850, saldo: 18, falta: false }
+          ]
+        }
+      };
+
+      function banner(el, { icone, corIcone, titulo, corTitulo, texto, corTexto }) {
+        el.innerHTML = `
+          <div class="${corIcone} text-white w-12 h-12 rounded-full flex items-center justify-center shrink-0" aria-hidden="true">${icone}</div>
+          <div>
+            <h1 class="text-2xl font-extrabold ${corTitulo}">${esc(titulo)}</h1>
+            <p class="text-sm font-medium ${corTexto} mt-1">${esc(texto)}</p>
+          </div>`;
+      }
+
+      function mostrarBanner(ativo, inativo, preencher) {
+        inativo.classList.add('hidden'); inativo.classList.remove('flex'); inativo.replaceChildren();
+        ativo.replaceChildren();
+        ativo.classList.remove('hidden'); ativo.classList.add('flex');
+        // Preenche no quadro seguinte: a região viva já está visível e o conteúdo é anunciado.
+        requestAnimationFrame(preencher);
+      }
+
+      function itemHTML(nome, quantidade, subtotal, detalhe, destaque) {
+        return `
+          <li class="py-3 flex items-start justify-between gap-4">
+            <div>
+              <p class="text-sm font-semibold text-slate-900">${quantidade}x ${esc(nome)}</p>
+              <p class="text-sm ${destaque ? 'text-red-800 font-semibold' : 'text-slate-600'}">${detalhe}</p>
+            </div>
+            <p class="text-sm font-semibold text-slate-900 whitespace-nowrap">${fmt(subtotal)}</p>
+          </li>`;
+      }
+
+      function definirAcoes(aprovada) {
+        const prim = $('acao-primaria'), sec = $('acao-secundaria');
+        const novo = ['Novo Atendimento', 'catalogo-checkout.html?novo=1'];
+        const voltar = ['Voltar ao Carrinho', 'catalogo-checkout.html'];
+        // Na recusa, a ação principal passa a ser voltar ao carrinho para ajustar os itens.
+        const [p, s] = aprovada ? [novo, voltar] : [voltar, novo];
+        prim.textContent = p[0]; prim.href = p[1];
+        sec.textContent = s[0]; sec.href = s[1];
+      }
+
+      function render(r) {
+        const aprovada = r.status === 'aprovada';
+        const dados = aprovada ? r.venda : r;
+        const situacao = $('resumo-situacao');
+
+        if (aprovada) {
+          mostrarBanner($('banner-aprovada'), $('banner-recusada'), () => banner($('banner-aprovada'), {
+            icone: ICONE_OK, corIcone: 'bg-emerald-600',
+            titulo: `Venda Aprovada — Pedido ${dados.numero}`, corTitulo: 'text-emerald-950',
+            texto: 'Pagamento confirmado e saldo atualizado automaticamente no estoque.', corTexto: 'text-emerald-900'
+          }));
+          document.title = `Venda Aprovada — Pedido ${dados.numero} | Casa Moura`;
+          situacao.textContent = 'Pago';
+          situacao.className = 'font-semibold text-emerald-800';
+        } else {
+          const titulo = r.codigo === 'estoque_insuficiente' ? 'Estoque Indisponível' : 'Saldo Insuficiente';
+          mostrarBanner($('banner-recusada'), $('banner-aprovada'), () => banner($('banner-recusada'), {
+            icone: ICONE_ALERTA, corIcone: 'bg-red-600',
+            titulo, corTitulo: 'text-red-950', texto: r.mensagem, corTexto: 'text-red-900'
+          }));
+          document.title = `${titulo} | Casa Moura`;
+          situacao.textContent = 'Não concluída — nenhum valor cobrado';
+          situacao.className = 'font-semibold text-red-800';
+        }
+
+        $('resumo-cliente').textContent = dados.cliente
+          ? `${dados.cliente.nome} (Tel: ${dados.cliente.telefone})`
+          : 'Nenhum cliente vinculado';
+        $('resumo-data').textContent = `${fmtData(dados.criado_em)} | Operador: ${dados.operador}`;
+
+        let pagamento = FORMAS[dados.forma_pagamento] || dados.forma_pagamento;
+        if (aprovada && dados.troco_centavos != null) {
+          pagamento += ` — recebido ${fmt(dados.valor_recebido_centavos)}, troco ${fmt(dados.troco_centavos)}`;
+        }
+        $('resumo-pagamento').textContent = pagamento;
+
+        $('resumo-itens').innerHTML = dados.itens.map((i) => aprovada
+          ? itemHTML(i.nome, i.quantidade, i.subtotal_centavos, `Novo saldo: ${i.novo_saldo} un.`, false)
+          : itemHTML(i.nome, i.quantidade, i.subtotal_centavos,
+              i.falta ? `Indisponível — em estoque: ${i.saldo} un.` : `Saldo inalterado: ${i.saldo} un.`, i.falta)
+        ).join('');
+
+        $('rotulo-total').textContent = aprovada ? 'Total Pago' : 'Total (não cobrado)';
+        $('resumo-total').textContent = fmt(dados.total_centavos);
+        definirAcoes(aprovada);
+      }
+
+      $('nome-operador').textContent = sessionStorage.getItem('casamoura:operador') || 'Balcão 01';
+
+      let resultado = null;
+      try { resultado = JSON.parse(sessionStorage.getItem('casamoura:resultado')); } catch { /* ignorado */ }
+
+      if (resultado) {
+        render(resultado);
+      } else {
+        // Modo demonstração: permite alternar entre os dois estados.
+        $('simulador').classList.remove('hidden');
+        $('simulador').classList.add('inline-flex');
+        $('aviso-demo').classList.remove('hidden');
+        const botoes = document.querySelectorAll('[data-estado]');
+        const aplicar = (estado) => {
+          botoes.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.estado === estado)));
+          render(DEMO[estado]);
+        };
+        botoes.forEach((b) => b.addEventListener('click', () => aplicar(b.dataset.estado)));
+        aplicar(new URLSearchParams(location.search).get('estado') === 'recusada' ? 'recusada' : 'aprovada');
+      }
+    })();
+  </script>
+</body>
+</html>

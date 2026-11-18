@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Casa Moura — Gestão de Balcão | Catálogo e Venda</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen font-sans antialiased text-slate-900">
+  <a href="#busca-produto"
+     class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-white focus:px-4 focus:py-2 focus:rounded-lg focus:ring-4 focus:ring-amber-600">
+    Pular para o catálogo
+  </a>
+
+  <!-- Barra superior -->
+  <header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3 min-w-0">
+      <div class="bg-amber-600 text-white font-bold rounded-lg w-9 h-9 flex items-center justify-center shrink-0" aria-hidden="true">CM</div>
+      <p class="font-bold text-slate-900 truncate">Casa Moura — Gestão de Balcão</p>
+    </div>
+    <div class="flex items-center gap-4 shrink-0">
+      <p class="text-sm text-slate-600 hidden sm:block">Operador: <span id="nome-operador">Balcão 01</span></p>
+      <button type="button" id="btn-sair"
+              class="min-h-[44px] px-4 rounded-lg border border-slate-300 text-slate-800 font-semibold hover:bg-slate-100 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-600">
+        Sair
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <h1 class="sr-only">Catálogo de produtos e carrinho de venda</h1>
+
+    <!-- Coluna esquerda: catálogo -->
+    <section class="lg:col-span-7" aria-labelledby="titulo-catalogo">
+      <h2 id="titulo-catalogo" class="sr-only">Catálogo de produtos</h2>
+
+      <label for="busca-produto" class="block text-sm font-semibold text-slate-900 mb-1.5">Pesquisar produto no catálogo</label>
+      <input id="busca-produto" type="search" placeholder="Buscar produto por nome..." autocomplete="off"
+             aria-describedby="resultado-busca"
+             class="w-full min-h-[44px] px-4 rounded-lg border-2 border-slate-400 bg-white text-slate-900 placeholder:text-slate-500 outline-none transition focus:ring-4 focus:ring-amber-500/40 focus:border-amber-600 mb-5" />
+      <p id="resultado-busca" class="sr-only" aria-live="polite"></p>
+
+      <p id="estado-catalogo" role="status" class="bg-white p-6 rounded-xl border border-slate-200 text-slate-700 text-center">
+        Carregando catálogo…
+      </p>
+      <ul id="lista-produtos" class="grid grid-cols-1 sm:grid-cols-2 gap-4" role="list"></ul>
+      <p id="sem-resultados" class="hidden bg-white p-6 rounded-xl border border-slate-200 text-slate-700 text-center">
+        Nenhum produto encontrado para esta busca.
+      </p>
+    </section>
+
+    <!-- Coluna direita: cliente e carrinho -->
+    <aside class="lg:col-span-5" aria-labelledby="titulo-carrinho">
+      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm lg:sticky lg:top-6">
+        <h2 id="titulo-carrinho" tabindex="-1" class="text-xl font-bold text-slate-900 mb-4 focus:outline-none">Carrinho de Venda</h2>
+
+        <fieldset class="mb-5">
+          <legend class="text-sm font-bold text-slate-900 mb-3">Dados do cliente</legend>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="sm:col-span-2">
+              <label for="cliente-nome" class="block text-sm font-semibold text-slate-900 mb-1">Cliente (Opcional)</label>
+              <input id="cliente-nome" type="text" value="João Silva Santos" autocomplete="off" maxlength="120"
+                     class="w-full min-h-[44px] px-3 rounded-lg border-2 border-slate-400 outline-none transition focus:ring-4 focus:ring-amber-500/40 focus:border-amber-600" />
+            </div>
+            <div>
+              <label for="cliente-telefone" class="block text-sm font-semibold text-slate-900 mb-1">Telefone</label>
+              <input id="cliente-telefone" type="tel" value="(11) 99999-0101" autocomplete="off" inputmode="tel" maxlength="20"
+                     aria-describedby="dica-telefone"
+                     class="w-full min-h-[44px] px-3 rounded-lg border-2 border-slate-400 outline-none transition focus:ring-4 focus:ring-amber-500/40 focus:border-amber-600" />
+            </div>
+            <div>
+              <label for="cliente-documento" class="block text-sm font-semibold text-slate-900 mb-1">CPF/CNPJ (Opcional)</label>
+              <input id="cliente-documento" type="text" value="000.000.000-00" autocomplete="off" inputmode="numeric" maxlength="18"
+                     class="w-full min-h-[44px] px-3 rounded-lg border-2 border-slate-400 outline-none transition focus:ring-4 focus:ring-amber-500/40 focus:border-amber-600" />
+            </div>
+          </div>
+          <p id="dica-telefone" class="text-xs text-slate-600 mt-2">Obrigatório para vincular um cliente à venda.</p>
+        </fieldset>
+
+        <h3 class="text-sm font-bold text-slate-900 mb-2">Itens selecionados</h3>
+        <ul id="itens-carrinho" class="divide-y divide-slate-200" role="list"></ul>
+        <p id="carrinho-vazio" class="hidden text-sm text-slate-600 py-4">Nenhum item no carrinho.</p>
+
+        <div class="border-t border-slate-300 mt-4 pt-4 flex items-baseline justify-between">
+          <span class="text-base font-semibold text-slate-700">Total a Pagar</span>
+          <output id="total" class="text-2xl font-extrabold text-slate-900" aria-live="polite">R$ 0,00</output>
+        </div>
+
+        <fieldset class="mt-5">
+          <legend class="text-sm font-bold text-slate-900 mb-2">Pagamento</legend>
+          <label for="forma-pagamento" class="block text-sm font-semibold text-slate-900 mb-1">Forma de pagamento</label>
+          <select id="forma-pagamento"
+                  class="w-full min-h-[44px] px-3 rounded-lg border-2 border-slate-400 bg-white outline-none transition focus:ring-4 focus:ring-amber-500/40 focus:border-amber-600">
+            <option value="pix">Pix</option>
+            <option value="cartao_debito">Cartão de débito</option>
+            <option value="cartao_credito">Cartão de crédito</option>
+            <option value="dinheiro">Dinheiro</option>
+          </select>
+          <div id="grupo-valor-recebido" class="hidden mt-3">
+            <label for="valor-recebido" class="block text-sm font-semibold text-slate-900 mb-1">Valor recebido (R$)</label>
+            <input id="valor-recebido" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off"
+                   aria-describedby="troco-previsto"
+                   class="w-full min-h-[44px] px-3 rounded-lg border-2 border-slate-400 placeholder:text-slate-500 outline-none transition focus:ring-4 focus:ring-amber-500/40 focus:border-amber-600" />
+            <p id="troco-previsto" class="text-sm text-slate-700 mt-1" aria-live="polite"></p>
+          </div>
+        </fieldset>
+
+        <p id="mensagem-erro" role="alert" class="hidden mt-4 rounded-lg border border-red-300 bg-red-50 text-red-900 text-sm font-medium p-3"></p>
+        <p id="mensagem-status" role="status" class="hidden mt-4 rounded-lg border border-slate-300 bg-slate-50 text-slate-800 text-sm font-medium p-3"></p>
+
+        <div class="mt-5">
+          <!-- amber-700 em vez de amber-600: texto branco sobre amber-600 tem contraste 3,2:1 (abaixo de 4,5:1) -->
+          <button type="button" id="btn-finalizar"
+                  class="w-full min-h-[48px] bg-amber-700 hover:bg-amber-800 text-white font-bold rounded-lg text-base transition focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-600 focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed">
+            Finalizar Venda
+          </button>
+          <button type="button" id="btn-limpar"
+                  class="w-full min-h-[44px] mt-2 border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-100 transition focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-600">
+            Cancelar / Limpar Carrinho
+          </button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    (function () {
+      // --- Sessão e chamadas à API ------------------------------------------
+      const CHAVES = {
+        token: 'casamoura:token', operador: 'casamoura:operador',
+        carrinho: 'casamoura:carrinho', cliente: 'casamoura:cliente', resultado: 'casamoura:resultado'
+      };
+      const token = sessionStorage.getItem(CHAVES.token);
+      if (!token) { location.replace('index.html'); return; }
+      const nomeOperador = sessionStorage.getItem(CHAVES.operador) || 'Balcão 01';
+
+      function sair(expirada) {
+        Object.values(CHAVES).forEach((c) => sessionStorage.removeItem(c));
+        location.replace('index.html' + (expirada ? '?sessao=expirada' : ''));
+      }
+
+      class SessaoExpirada extends Error {}
+
+      async function api(caminho, opcoes = {}) {
+        const resposta = await fetch('/api' + caminho, {
+          ...opcoes,
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+        });
+        if (resposta.status === 401) { sair(true); throw new SessaoExpirada(); }
+        let corpo = null;
+        try { corpo = await resposta.json(); } catch { /* resposta sem corpo JSON */ }
+        return { ok: resposta.ok, status: resposta.status, corpo };
+      }
+
+      const CAMPOS_INVALIDOS = {
+        telefone: 'Telefone inválido. Use, por exemplo, (11) 99999-0101.',
+        documento: 'CPF/CNPJ inválido. Use apenas números, pontos, barra e hífen.',
+        nome: 'O nome do cliente deve ter ao menos 2 caracteres.'
+      };
+      function mensagemDeErro(corpo) {
+        const detalhe = corpo && corpo.detail;
+        if (detalhe && detalhe.mensagem) return detalhe.mensagem;
+        if (Array.isArray(detalhe)) {
+          const campo = detalhe.map((d) => d.loc && d.loc[d.loc.length - 1]).find((c) => CAMPOS_INVALIDOS[c]);
+          if (campo) return CAMPOS_INVALIDOS[campo];
+          return 'Verifique os dados informados.';
+        }
+        return 'Não foi possível concluir a operação. Tente novamente.';
+      }
+
+      // --- Utilidades --------------------------------------------------------
+      const $ = (id) => document.getElementById(id);
+      const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+      const fmt = (centavos) => brl.format(centavos / 100).replace(/ /g, ' ');
+      const normalizar = (t) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+      const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      const lerJSON = (chave) => { try { return JSON.parse(sessionStorage.getItem(chave)); } catch { return null; } };
+
+      function parseValor(texto) {
+        const limpo = texto.replace(/R\$|\s/g, '').replace(/\./g, '').replace(',', '.');
+        if (!/^\d+(\.\d{1,2})?$/.test(limpo)) return null;
+        return Math.round(Number(limpo) * 100);
+      }
+
+      // Ilustrações neutras (SVG) usadas como miniaturas, escolhidas pelo nome do produto.
+      const svg = (corpo) =>
+        'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+          "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>" +
+          "<rect width='64' height='64' rx='10' fill='#f1f5f9'/>" + corpo + "</svg>");
+      const ICONES = {
+        saco:  { alt: 'Ilustração de um saco de cimento', src: svg("<path d='M18 16h28l4 36H14z' fill='#cbd5e1' stroke='#475569' stroke-width='2'/><rect x='22' y='28' width='20' height='10' rx='2' fill='#fff' stroke='#475569' stroke-width='2'/>") },
+        balde: { alt: 'Ilustração de uma embalagem de argamassa', src: svg("<path d='M16 22h32l-3 28H19z' fill='#e2e8f0' stroke='#475569' stroke-width='2'/><path d='M20 22c0-8 24-8 24 0' fill='none' stroke='#475569' stroke-width='2'/><rect x='22' y='32' width='20' height='8' rx='2' fill='#d97706'/>") },
+        tubo:  { alt: 'Ilustração de um tubo de PVC', src: svg("<rect x='8' y='27' width='48' height='10' rx='3' fill='#e2e8f0' stroke='#475569' stroke-width='2'/><ellipse cx='56' cy='32' rx='3' ry='5' fill='#fff' stroke='#475569' stroke-width='2'/>") },
+        lata:  { alt: 'Ilustração de uma lata de tinta', src: svg("<rect x='16' y='18' width='32' height='34' rx='4' fill='#fff' stroke='#475569' stroke-width='2'/><rect x='16' y='14' width='32' height='6' rx='2' fill='#94a3b8'/><rect x='22' y='28' width='20' height='12' rx='2' fill='#f1f5f9' stroke='#475569' stroke-width='1.5'/>") },
+        caixa: { alt: 'Ilustração de uma caixa de produto', src: svg("<rect x='14' y='20' width='36' height='30' rx='3' fill='#e2e8f0' stroke='#475569' stroke-width='2'/><path d='M14 28h36M32 20v8' stroke='#475569' stroke-width='2'/>") }
+      };
+      function iconePara(nome) {
+        const n = normalizar(nome);
+        if (n.includes('cimento')) return ICONES.saco;
+        if (n.includes('argamassa')) return ICONES.balde;
+        if (n.includes('tubo') || n.includes('pvc')) return ICONES.tubo;
+        if (n.includes('tinta')) return ICONES.lata;
+        return ICONES.caixa;
+      }
+
+      // --- Estado ------------------------------------------------------------
+      const params = new URLSearchParams(location.search);
+      if (params.get('novo') === '1') {
+        // Novo atendimento: carrinho e cliente em branco.
+        sessionStorage.removeItem(CHAVES.carrinho);
+        sessionStorage.removeItem(CHAVES.resultado);
+        sessionStorage.setItem(CHAVES.cliente, JSON.stringify({ nome: '', telefone: '', documento: '' }));
+        history.replaceState(null, '', location.pathname);
+      }
+
+      let produtos = [];
+      let carrinho = lerJSON(CHAVES.carrinho) || {}; // { produto_id: quantidade }
+      const porId = (id) => produtos.find((p) => String(p.id) === String(id));
+      const salvarCarrinho = () => sessionStorage.setItem(CHAVES.carrinho, JSON.stringify(carrinho));
+      const totalCarrinho = () => Object.keys(carrinho).reduce((s, id) => s + (porId(id)?.preco_centavos ?? 0) * carrinho[id], 0);
+
+      const listaProdutos = $('lista-produtos');
+      const listaCarrinho = $('itens-carrinho');
+      const camposCliente = { nome: $('cliente-nome'), telefone: $('cliente-telefone'), documento: $('cliente-documento') };
+      const FOCO = 'focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-600 focus-visible:ring-offset-2';
+
+      $('nome-operador').textContent = nomeOperador;
+
+      const clienteSalvo = lerJSON(CHAVES.cliente);
+      if (clienteSalvo) Object.keys(camposCliente).forEach((k) => { camposCliente[k].value = clienteSalvo[k] || ''; });
+      Object.values(camposCliente).forEach((campo) => campo.addEventListener('input', () => {
+        campo.removeAttribute('aria-invalid');
+        sessionStorage.setItem(CHAVES.cliente, JSON.stringify({
+          nome: camposCliente.nome.value, telefone: camposCliente.telefone.value, documento: camposCliente.documento.value
+        }));
+      }));
+
+      // --- Mensagens ---------------------------------------------------------
+      function mostrarErro(texto, campo) {
+        $('mensagem-status').classList.add('hidden');
+        $('mensagem-erro').textContent = texto;
+        $('mensagem-erro').classList.remove('hidden');
+        if (campo) { campo.setAttribute('aria-invalid', 'true'); campo.focus(); }
+      }
+      function mostrarStatus(texto) {
+        $('mensagem-erro').classList.add('hidden');
+        $('mensagem-status').textContent = texto;
+        $('mensagem-status').classList.remove('hidden');
+      }
+      function limparMensagens() {
+        $('mensagem-erro').classList.add('hidden');
+        $('mensagem-status').classList.add('hidden');
+      }
+
+      // --- Renderização ------------------------------------------------------
+      function renderCatalogo() {
+        listaProdutos.innerHTML = produtos.map((p) => {
+          const icone = iconePara(p.nome);
+          const semEstoque = p.estoque <= 0;
+          return `
+          <li data-nome="${esc(normalizar(p.nome))}"
+              class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div class="flex gap-4">
+              <img src="${icone.src}" alt="${icone.alt}" width="64" height="64" class="w-16 h-16 shrink-0" />
+              <div>
+                <h3 class="font-semibold text-slate-900 leading-snug">${esc(p.nome)}</h3>
+                <p class="text-lg font-bold text-slate-900 mt-1">${fmt(p.preco_centavos)}</p>
+                <p class="text-sm ${semEstoque ? 'text-red-800 font-semibold' : 'text-slate-600'}">
+                  ${semEstoque ? 'Sem estoque' : `Estoque: ${p.estoque} un.`}
+                </p>
+              </div>
+            </div>
+            <button type="button" data-acao="adicionar" data-id="${p.id}"
+                    aria-label="Adicionar ${esc(p.nome)} ao carrinho"
+                    class="w-full min-h-[44px] mt-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg transition disabled:bg-slate-500 disabled:cursor-not-allowed ${FOCO}">
+              + Adicionar
+            </button>
+          </li>`;
+        }).join('');
+        filtrar();
+      }
+
+      function renderCarrinho() {
+        const ids = Object.keys(carrinho);
+        const btn = 'min-w-[44px] min-h-[44px] rounded-lg border border-slate-300 text-slate-900 font-bold text-lg hover:bg-slate-100 transition disabled:text-slate-400 disabled:cursor-not-allowed ' + FOCO;
+
+        listaCarrinho.innerHTML = ids.map((id) => {
+          const p = porId(id), qtd = carrinho[id], nome = esc(p.nome);
+          return `
+            <li class="py-3 flex items-center gap-3">
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-slate-900">${qtd}x ${nome}</p>
+                <p class="text-sm text-slate-600">${fmt(p.preco_centavos * qtd)}</p>
+              </div>
+              <div class="flex items-center gap-1" role="group" aria-label="Quantidade de ${nome}">
+                <button type="button" data-acao="diminuir" data-id="${id}" class="${btn}"
+                        aria-label="Diminuir quantidade de ${nome}">−</button>
+                <span class="w-8 text-center font-semibold" aria-hidden="true">${qtd}</span>
+                <button type="button" data-acao="aumentar" data-id="${id}" class="${btn}"
+                        aria-label="Aumentar quantidade de ${nome}" ${qtd >= p.estoque ? 'disabled' : ''}>+</button>
+              </div>
+            </li>`;
+        }).join('');
+
+        $('carrinho-vazio').classList.toggle('hidden', ids.length > 0);
+        $('total').textContent = fmt(totalCarrinho());
+        $('btn-finalizar').disabled = ids.length === 0;
+
+        listaProdutos.querySelectorAll('[data-acao="adicionar"]').forEach((b) => {
+          const p = porId(b.dataset.id);
+          b.disabled = (carrinho[p.id] || 0) >= p.estoque;
+        });
+        atualizarTroco();
+      }
+
+      function filtrar() {
+        const termo = normalizar($('busca-produto').value.trim());
+        let visiveis = 0;
+        listaProdutos.querySelectorAll('li').forEach((li) => {
+          const ok = li.dataset.nome.includes(termo);
+          li.classList.toggle('hidden', !ok);
+          if (ok) visiveis++;
+        });
+        $('sem-resultados').classList.toggle('hidden', visiveis > 0 || produtos.length === 0);
+        if (termo) $('resultado-busca').textContent = `${visiveis} ${visiveis === 1 ? 'produto encontrado' : 'produtos encontrados'}`;
+      }
+
+      function atualizarTroco() {
+        const dinheiro = $('forma-pagamento').value === 'dinheiro';
+        $('grupo-valor-recebido').classList.toggle('hidden', !dinheiro);
+        const recebido = parseValor($('valor-recebido').value);
+        const total = totalCarrinho();
+        let texto = '';
+        if (dinheiro && recebido !== null && total > 0) {
+          texto = recebido >= total ? `Troco: ${fmt(recebido - total)}` : `Valor insuficiente: faltam ${fmt(total - recebido)}`;
+        }
+        $('troco-previsto').textContent = texto;
+      }
+
+      // --- Ações -------------------------------------------------------------
+      function alterar(id, delta) {
+        const p = porId(id);
+        const nova = Math.min(p.estoque, (carrinho[id] || 0) + delta);
+        if (nova <= 0) delete carrinho[id]; else carrinho[id] = nova;
+        salvarCarrinho();
+        limparMensagens();
+        renderCarrinho();
+      }
+
+      document.addEventListener('click', (e) => {
+        const b = e.target.closest('button[data-acao]');
+        if (!b) return;
+        const { acao, id } = b.dataset;
+        if (acao === 'adicionar' || acao === 'aumentar') alterar(id, 1);
+        if (acao === 'aumentar') listaCarrinho.querySelector(`[data-acao="aumentar"][data-id="${id}"]`)?.focus();
+        if (acao === 'diminuir') {
+          const removido = carrinho[id] === 1;
+          alterar(id, -1);
+          // Se o item saiu da lista, devolve o foco a um ponto estável.
+          if (removido) $('titulo-carrinho').focus();
+          else listaCarrinho.querySelector(`[data-acao="diminuir"][data-id="${id}"]`)?.focus();
+        }
+      });
+
+      $('busca-produto').addEventListener('input', filtrar);
+      $('forma-pagamento').addEventListener('change', atualizarTroco);
+      $('valor-recebido').addEventListener('input', () => { $('valor-recebido').removeAttribute('aria-invalid'); atualizarTroco(); });
+
+      $('btn-limpar').addEventListener('click', () => {
+        carrinho = {};
+        salvarCarrinho();
+        renderCarrinho();
+        mostrarStatus('Carrinho limpo.');
+      });
+
+      $('btn-sair').addEventListener('click', () => sair(false));
+
+      function ocupado(sim) {
+        const b = $('btn-finalizar');
+        b.disabled = sim || Object.keys(carrinho).length === 0;
+        b.textContent = sim ? 'Processando…' : 'Finalizar Venda';
+        if (sim) b.setAttribute('aria-busy', 'true'); else b.removeAttribute('aria-busy');
+      }
+
+      $('btn-finalizar').addEventListener('click', async () => {
+        limparMensagens();
+        const ids = Object.keys(carrinho);
+        if (!ids.length) return mostrarErro('Adicione ao menos um item ao carrinho.');
+
+        const forma = $('forma-pagamento').value;
+        let valorRecebido = null;
+        if (forma === 'dinheiro') {
+          valorRecebido = parseValor($('valor-recebido').value);
+          if (valorRecebido === null) return mostrarErro('Informe o valor recebido em dinheiro (ex.: 100,00).', $('valor-recebido'));
+        }
+
+        const nome = camposCliente.nome.value.trim();
+        const telefone = camposCliente.telefone.value.trim();
+        const documento = camposCliente.documento.value.trim();
+        if ((nome || documento) && !telefone) return mostrarErro('Informe o telefone para vincular o cliente à venda.', camposCliente.telefone);
+        if (telefone && !nome) return mostrarErro('Informe o nome do cliente.', camposCliente.nome);
+
+        ocupado(true);
+        try {
+          let cliente = null;
+          if (nome) {
+            const r = await api('/clientes', { method: 'POST', body: JSON.stringify({ nome, telefone, documento: documento || null }) });
+            if (!r.ok) return mostrarErro(mensagemDeErro(r.corpo));
+            cliente = r.corpo;
+          }
+
+          const pedido = {
+            itens: ids.map((id) => ({ produto_id: Number(id), quantidade: carrinho[id] })),
+            cliente_id: cliente ? cliente.id : null,
+            forma_pagamento: forma
+          };
+          if (forma === 'dinheiro') pedido.valor_recebido_centavos = valorRecebido;
+
+          const r = await api('/checkout', { method: 'POST', body: JSON.stringify(pedido) });
+
+          if (r.ok) {
+            sessionStorage.setItem(CHAVES.resultado, JSON.stringify({ status: 'aprovada', venda: r.corpo }));
+            carrinho = {};
+            salvarCarrinho();
+            location.href = 'resultado-checkout.html';
+            return;
+          }
+
+          if (r.status === 402 || r.status === 409) {
+            const faltas = (r.corpo.detail && r.corpo.detail.itens) || [];
+            sessionStorage.setItem(CHAVES.resultado, JSON.stringify({
+              status: 'recusada',
+              codigo: r.corpo.detail.codigo,
+              mensagem: r.corpo.detail.mensagem,
+              criado_em: new Date().toISOString(),
+              operador: nomeOperador,
+              cliente: cliente ? { nome: cliente.nome, telefone: cliente.telefone } : null,
+              forma_pagamento: forma,
+              total_centavos: totalCarrinho(),
+              itens: ids.map((id) => {
+                const p = porId(id);
+                const falta = faltas.find((f) => String(f.produto_id) === id);
+                return {
+                  nome: p.nome,
+                  quantidade: carrinho[id],
+                  subtotal_centavos: p.preco_centavos * carrinho[id],
+                  saldo: falta && falta.disponivel !== undefined ? falta.disponivel : p.estoque,
+                  falta: Boolean(falta)
+                };
+              })
+            }));
+            location.href = 'resultado-checkout.html';
+            return;
+          }
+
+          mostrarErro(mensagemDeErro(r.corpo));
+        } catch (erro) {
+          if (!(erro instanceof SessaoExpirada)) mostrarErro('Não foi possível conectar ao servidor. Tente novamente.');
+        } finally {
+          ocupado(false);
+        }
+      });
+
+      // --- Carga inicial -----------------------------------------------------
+      async function carregarProdutos() {
+        const estado = $('estado-catalogo');
+        try {
+          const r = await api('/produtos');
+          if (!r.ok) throw new Error(mensagemDeErro(r.corpo));
+          produtos = r.corpo;
+        } catch (erro) {
+          if (erro instanceof SessaoExpirada) return;
+          estado.textContent = 'Não foi possível carregar o catálogo. Verifique a conexão e recarregue a página.';
+          return;
+        }
+        estado.classList.add('hidden');
+
+        // Ajusta o carrinho salvo ao estoque atual (ex.: ao voltar de uma venda recusada).
+        const ajustes = [];
+        Object.keys(carrinho).forEach((id) => {
+          const p = porId(id);
+          if (!p || p.estoque <= 0) { if (p) ajustes.push(`${p.nome} removido (sem estoque)`); delete carrinho[id]; }
+          else if (carrinho[id] > p.estoque) { carrinho[id] = p.estoque; ajustes.push(`${p.nome} ajustado para ${p.estoque} un.`); }
+        });
+        salvarCarrinho();
+
+        renderCatalogo();
+        renderCarrinho();
+        if (ajustes.length) mostrarStatus('Carrinho ajustado ao estoque disponível: ' + ajustes.join('; ') + '.');
+      }
+
+      ocupado(false);
+      carregarProdutos();
+    })();
+  </script>
+</body>
+</html>
